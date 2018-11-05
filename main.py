@@ -7,11 +7,17 @@ class MyHTMLParser(HTMLParser):
     """
     look for tags
     """
-    def handle_starttag(self, tag, attrs):
-        print("Encountered a start tag:", tag)
+    def hunt_for(self, tag, attr):
+        if self.handle_starttag(tag, attr):
+            self.handle_data()
+
+    def handle_starttag(self, tag, attr):
+        if tag == 'ul':
+            print('Start tag: ' + tag)
 
     def handle_endtag(self, tag):
-        print("Encountered an end tag :", tag)
+        if tag == 'ul':
+            print("End tag :", tag)
 
     def handle_data(self, data):
         print("Encountered some data  :", data)
@@ -26,6 +32,7 @@ def clean(string):
     string = ''.join(string)
     return string[2:-2]
 
+
 s = requests.session()
 
 """
@@ -35,17 +42,23 @@ if (not os.environ.get('PYTHONHTTPSVERIFY', '') and
     getattr(ssl, '_create_unverified_context', None)): 
     ssl._create_default_https_context = ssl._create_unverified_context
 
-login = s.get('****')
+login = s.get('***')
 login_html = lxml.html.fromstring(login.text)
 hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
 form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
-print(login.url)
-print(form)
 
 form['password'] = '***'
-response = s.post('****',data={'password':''***})
 
-print(response.url)
+response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
+
+clean_html = clean(response.text)
+
+#print(clean_html)
+
+parser = MyHTMLParser()
+
+parser.feed(response.text)
+
 
 '''
 url = ''
@@ -62,7 +75,7 @@ copy = ''
 for i in response: # step through bytes in object, clean out /b and /n, concat to blank string
     copy += clean(str(i))
 
-print(copy)
+
 
 #print(response.info())
 
