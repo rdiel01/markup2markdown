@@ -7,8 +7,16 @@ class MyHTMLParser(HTMLParser):
     """
     look for tags
     """
+
+    def __init__(self):
+        self.target = ''
+
+    def target(self,tag):
+        self.target = tag
+
     def hunt_for(self, tag, attr):
-        if self.handle_starttag(tag, attr):
+
+        if self.handle_starttag(tag, attr) == 'ul':
             self.handle_data()
 
     def handle_starttag(self, tag, attr):
@@ -32,53 +40,102 @@ def clean(string):
     string = ''.join(string)
     return string[2:-2]
 
-
-s = requests.session()
-
-"""
-ssl certification
-"""
-if (not os.environ.get('PYTHONHTTPSVERIFY', '') and
-    getattr(ssl, '_create_unverified_context', None)): 
-    ssl._create_default_https_context = ssl._create_unverified_context
-
-login = s.get('***')
-login_html = lxml.html.fromstring(login.text)
-hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
-form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
-
-form['password'] = '***'
-
-response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
-
-clean_html = clean(response.text)
-
-#print(clean_html)
-
-parser = MyHTMLParser()
-
-parser.feed(response.text)
+def cleaner(string):   
+    string = string.split()
+    string = ''.join(string)
+    string = string.split('<')
+    string = join(string)
+    string = string.split('>')
+    string = ''.join(string)
+    string = string.split(' ')
+    return string
 
 
-'''
-url = ''
-user_agent = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'
-values = {'password':''}
-headers = {'User-Agent' : user_agent}
+def h1_list():
+    pass
 
-#data = urllib.urlencode(values)
-#req = urllib2.Request(url, data, headers)
-response = urlopen(url)
+def search_for(list):
+    for i in len(list):
+        if list(i) == '<ul':
+            for j in len(list[i+1:]):
+                if list[j] == '<h3><a>'
+                    dict_key = list[j+1]
+                    continue
+                if list[j] == '<li><a':
+                    for word in list[j+1:]:
+                        if word[-1] != '>':
+                            dict[dict_key] = word
+                            if word[-1] == '>':
+                                dict[dict_key] += word[:-10]                    
+                if list[j] == '</ul>':
+                    continue
+                
+                if list(j+1) == None:
+                    break
 
-copy = ''
+def main():
+    s = requests.session()
 
-for i in response: # step through bytes in object, clean out /b and /n, concat to blank string
-    copy += clean(str(i))
+    """
+    ssl certification
+    """
+    if (not os.environ.get('PYTHONHTTPSVERIFY', '') and
+        getattr(ssl, '_create_unverified_context', None)): 
+        ssl._create_default_https_context = ssl._create_unverified_context
+
+    login = s.get('https://foundrycommerce.helpdocs.com')
+    login_html = lxml.html.fromstring(login.text)
+    hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
+    form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
+
+    form['password'] = 'orderforgehelp'
+
+    response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
+
+    clean_html = clean(response.text)
+
+    #print(clean_html)
+
+    parser = MyHTMLParser()
+    tag_detector = False
+
+    dict = {}
+    dict_key = ''
 
 
 
-#print(response.info())
 
-parser = MyHTMLParser()
-parser.feed(copy)
-'''
+
+
+
+
+   
+
+    #parser.feed(list.text)
+
+
+    '''
+    url = ''
+    user_agent = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'
+    values = {'password':''}
+    headers = {'User-Agent' : user_agent}
+
+    #data = urllib.urlencode(values)
+    #req = urllib2.Request(url, data, headers)
+    list = urlopen(url)
+
+    copy = ''
+
+    for i in list: # step through bytes in object, clean out /b and /n, concat to blank string
+        copy += clean(str(i))
+
+
+
+    #print(list.info())
+
+    parser = MyHTMLParser()
+    parser.feed(copy)
+    '''
+
+if '__name__' == '__main__':
+    main()
