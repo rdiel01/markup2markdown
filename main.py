@@ -104,14 +104,14 @@ def main():
         getattr(ssl, '_create_unverified_context', None)): 
         ssl._create_default_https_context = ssl._create_unverified_context
 
-    login = s.get('https://foundrycommerce.helpdocs.com')
+    login = s.get('URL')
     login_html = lxml.html.fromstring(login.text)
     hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
     form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
 
-    form['password'] = 'orderforgehelp'
+    form['password'] = 'password'
 
-    response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
+    response = s.post('URL',data=form)
 
     clean_html = clean(response.text)
 
