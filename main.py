@@ -3,32 +3,53 @@ from urllib.request import urlopen#, urlencode
 import requests, lxml.html
 import os, ssl
 
-class MyHTMLParser(HTMLParser):
+class CatParser(HTMLParser.HTMLParser):
     """
     look for tags
     """
-
-    def __init__(self):
-        self.target = ''
-
-    def target(self,tag):
-        self.target = tag
-
+    def __init__(self,classname,classvalue):
+        HTMLParser.HTMLParser__init__(self,convert_charrefs=True)    
+        #self.catagory = ''
+        self.subjects = []
+        #self.final = {}
+        #self.target = ''
+        self.recording = False
+        self.clName = className
+        self.clValue = classvalue
+        self.livedata = ''
+    '''
     def hunt_for(self, tag, attr):
-
         if self.handle_starttag(tag, attr) == 'ul':
-            self.handle_data()
-
+            self.lsSubjects.append(self.handle_data())
+    '''
     def handle_starttag(self, tag, attr):
-        if tag == 'ul':
+        for name,value in attr:
+            if name == self.clName and value == self.clValue:
+                self.recording = True
+                print('START RECORDING')
+    '''
+            if name == self.clName and value = self.clValue:
+            if self.tag == 'h3' and self.attr == :
             print('Start tag: ' + tag)
-
+    '''
     def handle_endtag(self, tag):
         if tag == 'ul':
-            print("End tag :", tag)
+            self.recording = False
+            print('DONE RECORDING')
+
+    def handle_startendtag(self,tag,attr):
+        if self.recording and tag == 'a':
+            for name, value in attr:
+                self.livedata = value
+
 
     def handle_data(self, data):
-        print("Encountered some data  :", data)
+        while self.recording:
+            self.subjects.append(data)
+            print(data)
+    
+        print("ADDIND : ", data)
+
 
 def clean(string):
     """
@@ -53,7 +74,7 @@ def cleaner(string):
 
 def h1_list():
     pass
-
+'''
 def search_for(list):
     for i in len(list):
         if list(i) == '<ul':
@@ -72,7 +93,7 @@ def search_for(list):
                 
                 if list(j+1) == None:
                     break
-
+'''
 def main():
     s = requests.session()
 
@@ -95,14 +116,18 @@ def main():
     clean_html = clean(response.text)
 
     #print(clean_html)
+    userClass = str(input('Enter an html attribute (class, id, etc.):\n'))
+    userValue = str(input("Enter the attribute's value:\n"))
 
-    parser = MyHTMLParser()
-    tag_detector = False
+    parser = CatParser(classname=userClass,classvalue=userValue)
+    # tag_detector = False
 
     dict = {}
     dict_key = ''
 
+    parser.feed(response.text)
 
+    print(parser.subjects)
 
 
 
