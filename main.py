@@ -3,18 +3,18 @@ from urllib.request import urlopen#, urlencode
 import requests, lxml.html
 import os, ssl
 
-class CatParser(HTMLParser.HTMLParser):
+class CatParser(HTMLParser):
     """
     look for tags
     """
     def __init__(self,classname,classvalue):
-        HTMLParser.HTMLParser__init__(self,convert_charrefs=True)    
+        HTMLParser.__init__(self)    
         #self.catagory = ''
         self.subjects = []
         #self.final = {}
         #self.target = ''
         self.recording = False
-        self.clName = className
+        self.clName = classname
         self.clValue = classvalue
         self.livedata = ''
     '''
@@ -46,9 +46,8 @@ class CatParser(HTMLParser.HTMLParser):
     def handle_data(self, data):
         while self.recording:
             self.subjects.append(data)
-            print(data)
-    
-        print("ADDIND : ", data)
+            print("ADDIND : ", data)
+            self.recording = False
 
 
 def clean(string):
@@ -104,14 +103,14 @@ def main():
         getattr(ssl, '_create_unverified_context', None)): 
         ssl._create_default_https_context = ssl._create_unverified_context
 
-    login = s.get('URL')
+    login = s.get('https://foundrycommerce.helpdocs.com/')
     login_html = lxml.html.fromstring(login.text)
     hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
     form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
 
-    form['password'] = 'password'
+    form['password'] = 'orderforgehelp'
 
-    response = s.post('URL',data=form)
+    response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
 
     clean_html = clean(response.text)
 
@@ -164,3 +163,4 @@ def main():
 
 if '__name__' == '__main__':
     main()
+   
