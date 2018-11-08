@@ -1,5 +1,5 @@
 from html.parser import HTMLParser
-from urllib.request import urlopen#, urlencode
+from urllib.request import urlopen
 import requests, lxml.html
 import os, ssl
 
@@ -9,46 +9,57 @@ class CatParser(HTMLParser):
     """
     def __init__(self,classname,classvalue):
         HTMLParser.__init__(self)    
-        #self.catagory = ''
+        self.catagory = ''
         self.subjects = []
-        #self.final = {}
-        #self.target = ''
+        self.grouping = {}
+        self.final = {}
+        self.target = ''
         self.recording = False
+        self.li = False
+        self.h3 = False
         self.clName = classname
         self.clValue = classvalue
-        self.livedata = ''
-    '''
-    def hunt_for(self, tag, attr):
-        if self.handle_starttag(tag, attr) == 'ul':
-            self.lsSubjects.append(self.handle_data())
-    '''
+        self.catlinks = {}
+        self.links = []
+
     def handle_starttag(self, tag, attr):
-        for name,value in attr:
-            if name == self.clName and value == self.clValue:
-                self.recording = True
-                print('START RECORDING')
-    '''
-            if name == self.clName and value = self.clValue:
-            if self.tag == 'h3' and self.attr == :
-            print('Start tag: ' + tag)
-    '''
+        if self.li and tag == 'a':
+            #append link to list
+            self.links.append(attr[0][1])
+        if tag == 'li':
+            self.li = True
+            return
+        if tag == 'h3':
+            self.h3 = True
+            return
+
     def handle_endtag(self, tag):
+        if tag == 'li':
+            self.li = False
+            return
+        if tag == 'h3':
+            self.h3 = False
+            return
         if tag == 'ul':
-            self.recording = False
-            print('DONE RECORDING')
+            print('adding: '+self.catagory)
+            self.final[self.catagory]=self.subjects
+            self.catlinks[self.catagory] = self.links
+            self.links = []
+            self.subjects = []
+            self.catagory = ''
 
     def handle_startendtag(self,tag,attr):
-        if self.recording and tag == 'a':
-            for name, value in attr:
-                self.livedata = value
-
+        if self.li:
+            self.links.append(attr[1])
+        if self.h3:
+            self.subjectlinks.append(attr[1])
 
     def handle_data(self, data):
-        while self.recording:
+        if self.h3:
+            self.catagory = data
+        if self.li:
             self.subjects.append(data)
-            print("ADDIND : ", data)
-            self.recording = False
-
+            return
 
 def clean(string):
     """
@@ -70,29 +81,6 @@ def cleaner(string):
     string = string.split(' ')
     return string
 
-
-def h1_list():
-    pass
-'''
-def search_for(list):
-    for i in len(list):
-        if list(i) == '<ul':
-            for j in len(list[i+1:]):
-                if list[j] == '<h3><a>'
-                    dict_key = list[j+1]
-                    continue
-                if list[j] == '<li><a':
-                    for word in list[j+1:]:
-                        if word[-1] != '>':
-                            dict[dict_key] = word
-                            if word[-1] == '>':
-                                dict[dict_key] += word[:-10]                    
-                if list[j] == '</ul>':
-                    continue
-                
-                if list(j+1) == None:
-                    break
-'''
 def main():
     s = requests.session()
 
@@ -114,12 +102,10 @@ def main():
 
     clean_html = clean(response.text)
 
-    #print(clean_html)
     userClass = str(input('Enter an html attribute (class, id, etc.):\n'))
     userValue = str(input("Enter the attribute's value:\n"))
 
     parser = CatParser(classname=userClass,classvalue=userValue)
-    # tag_detector = False
 
     dict = {}
     dict_key = ''
@@ -130,36 +116,26 @@ def main():
 
 
 
-
-
-
-   
-
-    #parser.feed(list.text)
-
-
-    '''
-    url = ''
-    user_agent = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64)'
-    values = {'password':''}
-    headers = {'User-Agent' : user_agent}
-
-    #data = urllib.urlencode(values)
-    #req = urllib2.Request(url, data, headers)
-    list = urlopen(url)
-
-    copy = ''
-
-    for i in list: # step through bytes in object, clean out /b and /n, concat to blank string
-        copy += clean(str(i))
-
-
-
-    #print(list.info())
-
-    parser = MyHTMLParser()
-    parser.feed(copy)
-    '''
+'''
+from html.parser import HTMLParser
+from urllib.request import urlopen#, urlencode
+import requests, lxml.html
+import os, ssl
+from main import CatParser, clean, cleaner
+s = requests.session()
+login = s.get('https://foundrycommerce.helpdocs.com/')
+login_html = lxml.html.fromstring(login.text)
+hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
+form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
+form['password'] = 'orderforgehelp'
+response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
+clean_html = clean(response.text)
+dict = {}
+dict_key = ''
+parser = CatParser('class','section-header')
+parser.feed(response.text)
+print(parser.subjects)
+'''
 
 if '__name__' == '__main__':
     main()
