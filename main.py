@@ -3,11 +3,14 @@ from urllib.request import urlopen
 import requests, lxml.html
 import os, ssl
 
+#Make PageParser(HTMLParser)
+#used to find body of help doc
+
 class CatParser(HTMLParser):
     """
     look for tags
     """
-    def __init__(self,classname,classvalue):
+    def __init__(self):
         HTMLParser.__init__(self)    
         self.catagory = ''
         self.subjects = []
@@ -17,8 +20,6 @@ class CatParser(HTMLParser):
         self.recording = False
         self.li = False
         self.h3 = False
-        self.clName = classname
-        self.clValue = classvalue
         self.catlinks = {}
         self.links = []
 
@@ -81,7 +82,7 @@ def cleaner(string):
     string = string.split(' ')
     return string
 
-def main():
+def link_grab():
     s = requests.session()
 
     """
@@ -100,20 +101,57 @@ def main():
 
     response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
 
-    clean_html = clean(response.text)
+    #clean_html = clean(response.text)
 
-    userClass = str(input('Enter an html attribute (class, id, etc.):\n'))
-    userValue = str(input("Enter the attribute's value:\n"))
+    #userClass = str(input('Enter an html attribute (class, id, etc.):\n'))
+    #userValue = str(input("Enter the attribute's value:\n"))
 
-    parser = CatParser(classname=userClass,classvalue=userValue)
+    parser = CatParser()
 
     dict = {}
     dict_key = ''
 
     parser.feed(response.text)
 
-    print(parser.subjects)
+    return parser.catlinks
 
+def link_user(link_dictionary):
+    # uses PageParser to find help doc info and save to its own text doc.
+    s = requests.session()
+
+    """
+    ssl certification
+    """
+    if (not os.environ.get('PYTHONHTTPSVERIFY', '') and
+        getattr(ssl, '_create_unverified_context', None)): 
+        ssl._create_default_https_context = ssl._create_unverified_context
+    
+    parser = PageParser()
+    for key in link_dictionary:
+        for link in key:
+            page = s.get('https:'+link)
+            parser.feed(page.text)
+            #creat new word doc named after catagory and index number
+            f.open(key+'_'+list.index(link_dictionary[key]),"x")
+            f.write(parser.text)
+
+
+
+
+def main():
+    #f = open("test_doc.txt", "x")
+    catagory_links = link_grab()
+    link_user(catagory_links)
+    """
+    for i in catagory_links:
+        f.write(i)
+        for j in catagory_links[i]:
+            f.write(j)
+    f.close()
+    """
+
+if '__name__' == '__main__':
+    main()
 
 
 '''
@@ -136,7 +174,3 @@ parser = CatParser('class','section-header')
 parser.feed(response.text)
 print(parser.subjects)
 '''
-
-if '__name__' == '__main__':
-    main()
-   
