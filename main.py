@@ -3,8 +3,39 @@ from urllib.request import urlopen
 import requests, lxml.html
 import os, ssl
 
-#Make PageParser(HTMLParser)
+class PageParser(HTMLParser):
 #used to find body of help doc
+    def __init__(self):
+        HTMLParser.__init__(self)    
+        self.bodylist = []
+        self.body = ''
+        self.record = False
+    
+    def handle_starttag(self, tag, attr):
+        if tag == 'header' and attr[0][1] == 'article-header':
+            self.body += '<{0} {1}="{2}"'.format(tag,attr[0][0],attr[0][1])
+            self.record = True
+            return
+        if self.record and tag:
+            self.body += '<{0}>'.format(tag)
+            return
+        if self.record and tag and attr:
+            self.body += '<{0} {1}="{2}"'.format(tag,attr[0][0],attr[0][1])
+            return
+
+    def handle_endtag(self, tag):
+        if self. record and tag == 'section':
+            self.body += '</section>'
+            self.record = False
+            return
+        if self.record:
+            self.body += '</{0}>'.format(tag)
+ 
+    def handle_data(self, data):
+        if self.record:
+            self.body += data
+            return
+
 
 class CatParser(HTMLParser):
     """
@@ -14,10 +45,7 @@ class CatParser(HTMLParser):
         HTMLParser.__init__(self)    
         self.catagory = ''
         self.subjects = []
-        self.grouping = {}
         self.final = {}
-        self.target = ''
-        self.recording = False
         self.li = False
         self.h3 = False
         self.catlinks = {}
@@ -54,6 +82,7 @@ class CatParser(HTMLParser):
             self.links.append(attr[1])
         if self.h3:
             self.subjectlinks.append(attr[1])
+            return
 
     def handle_data(self, data):
         if self.h3:
@@ -101,11 +130,6 @@ def link_grab():
 
     response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
 
-    #clean_html = clean(response.text)
-
-    #userClass = str(input('Enter an html attribute (class, id, etc.):\n'))
-    #userValue = str(input("Enter the attribute's value:\n"))
-
     parser = CatParser()
 
     dict = {}
@@ -126,17 +150,25 @@ def link_user(link_dictionary):
         getattr(ssl, '_create_unverified_context', None)): 
         ssl._create_default_https_context = ssl._create_unverified_context
     
-    parser = PageParser()
+    html_body = PageParser()
     for key in link_dictionary:
-        for link in key:
+        i=0
+        for link in link_dictionary[key]:
+            login = s.get('https://foundrycommerce.helpdocs.com/')
+            login_html = lxml.html.fromstring(login.text)
+            hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
+            form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
+            form['password'] = 'orderforgehelp'
+
+            response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
             page = s.get('https:'+link)
-            parser.feed(page.text)
+            html_body.feed(page.text)
             #creat new word doc named after catagory and index number
-            f.open(key+'_'+list.index(link_dictionary[key]),"x")
-            f.write(parser.text)
-
-
-
+            f = open('z_'+key+'_'+str(i)+'.txt',"x")
+            f.write(html_body.body)
+            f.close()
+            html_body.body=''
+            i += 1
 
 def main():
     #f = open("test_doc.txt", "x")
