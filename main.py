@@ -4,7 +4,7 @@ import requests, lxml.html
 import os, ssl
 
 class PageParser(HTMLParser):
-#used to find body of help doc
+    #used to find body of help doc
     def __init__(self):
         HTMLParser.__init__(self)    
         self.bodylist = []
@@ -16,12 +16,22 @@ class PageParser(HTMLParser):
             self.body += '<{0} {1}="{2}"'.format(tag,attr[0][0],attr[0][1])
             self.record = True
             return
-        if self.record and tag:
-            self.body += '<{0}>'.format(tag)
-            return
         if self.record and tag and attr:
             self.body += '<{0} {1}="{2}"'.format(tag,attr[0][0],attr[0][1])
             return
+        if self.record and tag:
+            self.body += '<{0}>'.format(tag)
+            return
+       
+
+    def handle_startendtag(self, tag, attr):
+        #need to add img tag info
+        if self.record:
+            self.body += '<{0} '.format(tag)
+            for x in attr:
+                if x[0] == 'src':
+                    self.body += x[0]+'="'+x[1]+'"'
+                    self.body += '>'
 
     def handle_endtag(self, tag):
         if self. record and tag == 'section':
@@ -47,28 +57,31 @@ class CatParser(HTMLParser):
         self.subjects = []
         self.final = {}
         self.li = False
-        self.h3 = False
+        self.ul = False
         self.catlinks = {}
         self.links = []
 
     def handle_starttag(self, tag, attr):
-        if self.li and tag == 'a':
+        if self.li and self.ul and tag == 'a':
             #append link to list
             self.links.append(attr[0][1])
         if tag == 'li':
             self.li = True
             return
-        if tag == 'h3':
-            self.h3 = True
-            return
+        if tag == 'ul' and attr:
+            if attr[0][1] == 'articles-list':
+                print(attr)
+                self.ul = True
+                return
 
     def handle_endtag(self, tag):
         if tag == 'li':
             self.li = False
             return
-        if tag == 'h3':
-            self.h3 = False
+        if tag == 'ul':
+            self.ul = False
             return
+    '''    
         if tag == 'ul':
             print('adding: '+self.catagory)
             self.final[self.catagory]=self.subjects
@@ -76,20 +89,24 @@ class CatParser(HTMLParser):
             self.links = []
             self.subjects = []
             self.catagory = ''
+            
 
     def handle_startendtag(self,tag,attr):
         if self.li:
             self.links.append(attr[1])
-        if self.h3:
+        if self.ul:
             self.subjectlinks.append(attr[1])
             return
-
+    
     def handle_data(self, data):
-        if self.h3:
+        
+        if self.ul:
             self.catagory = data
+        
         if self.li:
             self.subjects.append(data)
             return
+    '''
 
 def clean(string):
     """
@@ -128,16 +145,18 @@ def link_grab():
 
     form['password'] = 'orderforgehelp'
 
-    response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
+    signin = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
+
+    response = s.get('https://foundrycommerce.helpdocs.com/categories')
 
     parser = CatParser()
-
+    '''
     dict = {}
     dict_key = ''
-
+    '''
     parser.feed(response.text)
 
-    return parser.catlinks
+    return parser.links
 
 def link_user(link_dictionary):
     # uses PageParser to find help doc info and save to its own text doc.
@@ -153,7 +172,7 @@ def link_user(link_dictionary):
     html_body = PageParser()
     for key in link_dictionary:
         i=0
-        for link in link_dictionary[key]:
+        for titleLink in link_dictionary[key]:
             login = s.get('https://foundrycommerce.helpdocs.com/')
             login_html = lxml.html.fromstring(login.text)
             hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
@@ -161,14 +180,26 @@ def link_user(link_dictionary):
             form['password'] = 'orderforgehelp'
 
             response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
-            page = s.get('https:'+link)
+            page = s.get(titleLink[1])
             html_body.feed(page.text)
             #creat new word doc named after catagory and index number
-            f = open('z_'+key+'_'+str(i)+'.txt',"x")
+            f = open(titleLink[0]+'.txt',"x")
             f.write(html_body.body)
             f.close()
             html_body.body=''
             i += 1
+
+def catSplit(list):
+    dict = {}
+    for url in list:
+        urlSplit = url.split('/')
+        category = urlSplit[3]
+        titleLink = (urlSplit[4],'https:'+url)
+        if category not in dict.keys():
+            dict[category] = [titleLink]
+        else:
+            dict[category].append(titleLink)
+    return dict
 
 def main():
     #f = open("test_doc.txt", "x")
@@ -184,25 +215,3 @@ def main():
 
 if '__name__' == '__main__':
     main()
-
-
-'''
-from html.parser import HTMLParser
-from urllib.request import urlopen#, urlencode
-import requests, lxml.html
-import os, ssl
-from main import CatParser, clean, cleaner
-s = requests.session()
-login = s.get('https://foundrycommerce.helpdocs.com/')
-login_html = lxml.html.fromstring(login.text)
-hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
-form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
-form['password'] = 'orderforgehelp'
-response = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
-clean_html = clean(response.text)
-dict = {}
-dict_key = ''
-parser = CatParser('class','section-header')
-parser.feed(response.text)
-print(parser.subjects)
-'''
