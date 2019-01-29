@@ -1,3 +1,4 @@
+#from confluence.client import Confluence
 from html.parser import HTMLParser
 from urllib.request import urlopen
 import requests, lxml.html
@@ -17,21 +18,20 @@ class PageParser(HTMLParser):
             self.record = True
             return
         if self.record and tag and attr:
-            self.body += '<{0} {1}="{2}"'.format(tag,attr[0][0],attr[0][1])
+            self.body += '<{0} {1}="{2}">'.format(tag,attr[0][0],attr[0][1])
             return
         if self.record and tag:
             self.body += '<{0}>'.format(tag)
             return
        
 
-    def handle_startendtag(self, tag, attr):
-        #need to add img tag info
-        if self.record:
-            self.body += '<{0} '.format(tag)
-            for x in attr:
-                if x[0] == 'src':
-                    self.body += x[0]+'="'+x[1]+'"'
-                    self.body += '>'
+    # def handle_startendtag(self, tag, attr):
+    #     #need to add img tag info
+    #     if self.record:
+    #         self.body += '<{0}>'.format(tag)
+    #         # for x in attr:
+    #         #     if x[0] == 'src':
+    #         #         self.body += x[0]+'="'+x[1]+'">'
 
     def handle_endtag(self, tag):
         if self. record and tag == 'section':
@@ -108,26 +108,6 @@ class CatParser(HTMLParser):
             return
     '''
 
-def clean(string):
-    """
-    removes specified characters from a string
-    """
-    string = string.split()
-    string = ''.join(string)
-    string = string.split('\\')
-    string = ''.join(string)
-    return string[2:-2]
-
-def cleaner(string):   
-    string = string.split()
-    string = ''.join(string)
-    string = string.split('<')
-    string = join(string)
-    string = string.split('>')
-    string = ''.join(string)
-    string = string.split(' ')
-    return string
-
 def link_grab():
     s = requests.session()
 
@@ -143,7 +123,9 @@ def link_grab():
     hidden_inputs = login_html.xpath(r'//form//input[@type="hidden"]')
     form = {x.attrib["name"]: x.attrib["value"] for x in hidden_inputs}
 
-    form['password'] = 'orderforgehelp'
+    userPass = input("enter password for foundry commerce help docs:")
+
+    form['password'] = str(userPass)
 
     signin = s.post('https://foundrycommerce.helpdocs.com/login',data=form)
 
@@ -183,13 +165,16 @@ def link_user(link_dictionary):
             page = s.get(titleLink[1])
             html_body.feed(page.text)
             #creat new word doc named after catagory and index number
-            f = open(titleLink[0]+'.txt',"x")
+            f = open('final/'+key+'_'+titleLink[0]+'.txt',"x")
             f.write(html_body.body)
             f.close()
             html_body.body=''
             i += 1
 
 def catSplit(list):
+    """
+    takes list, returns dict, 
+    """
     dict = {}
     for url in list:
         urlSplit = url.split('/')
@@ -201,17 +186,39 @@ def catSplit(list):
             dict[category].append(titleLink)
     return dict
 
+def clean(string):
+    """
+    removes specified characters from a string
+    """
+    string = string.split()
+    string = ''.join(string)
+    string = string.split('\\')
+    string = ''.join(string)
+    return string[2:-2]
+
+def cleaner(string):   
+    string = string.split()
+    string = ''.join(string)
+    string = string.split('<')
+    string = join(string)
+    string = string.split('>')
+    string = ''.join(string)
+    string = string.split(' ')
+    return string
+
 def main():
     #f = open("test_doc.txt", "x")
-    catagory_links = link_grab()
-    link_user(catagory_links)
+    category_links = link_grab()
+    category_dict = catSplit(category_links)
+    link_user(category_dict)
     """
-    for i in catagory_links:
+    for i in category_links:
         f.write(i)
-        for j in catagory_links[i]:
+        for j in category_links[i]:
             f.write(j)
     f.close()
     """
 
 if '__name__' == '__main__':
     main()
+
